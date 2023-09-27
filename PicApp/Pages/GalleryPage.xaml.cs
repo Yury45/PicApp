@@ -1,0 +1,82 @@
+﻿using PicApp.Models;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Xamarin.Forms;
+using Xamarin.Forms.Xaml;
+
+namespace PicApp.Pages
+{
+    public partial class GalleryPage : ContentPage
+    {
+        string path = @"/storage/emulated/0/DCIM/Camera/";
+        private ObservableCollection<PictureInfo> _pictureList { get; set; }
+        private PictureInfo _currentPicture;
+
+        public GalleryPage()
+        {
+            InitializeComponent();
+            _pictureList = new ObservableCollection<PictureInfo>();
+            pictureList.ItemsSource = _pictureList;
+            InitializeData();
+        }
+
+        private void InitializeData()
+        {
+            LoadPictureList();
+        }
+
+        private void LoadPictureList()
+        {
+            if (Device.RuntimePlatform != Device.Android || !Directory.Exists(path))
+                return;
+
+            DirectoryInfo dir = new DirectoryInfo(path);
+
+            var files = dir.GetFileSystemInfos("*.jpg");
+
+            foreach (var file in files)
+            {
+                _pictureList.Add(new PictureInfo(file.Name, file.FullName, file.CreationTime));
+            }
+        }
+
+        private void OpenPicrureButton_Clicked(object sender, EventArgs e)
+        {
+            if (pictureList.SelectedItem is null)
+                return;
+
+            Navigation.PushAsync(new ImagePage(pictureList.SelectedItem as PictureInfo));
+        }
+
+        private async void RemovePictureButton_Clicked(object sender, EventArgs e)
+        {
+            if (pictureList.SelectedItem is null)
+                return;
+            PictureInfo pic = pictureList.SelectedItem as PictureInfo;
+            var answer = await DisplayAlert("Внимание!", $"Удалить {pic.FileName}", "Да", "Нет");
+
+            if (answer == false)
+            {
+                return;
+            }
+
+            try
+            {
+                if (File.Exists(pic.PicturePath))
+                {
+                    File.Delete(pic.PicturePath);
+                }
+                _pictureList.Remove(pic);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ошибка!", ex.Message, "OK");
+            }
+        }
+    }
+}
